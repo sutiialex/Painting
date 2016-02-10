@@ -78,6 +78,17 @@ def moreWhitesThanBlacks(image, r1, c1, r2, c2):
 
     return whites + 1 > blackPatches
 
+def hashLeftOrRight(image, r1, c1, r2, c2):
+    n, m = len(image), len(image[0])
+    if r1 == r2:
+        # Horizontal
+        return (c1 > 0 and image[r1][c1-1] == 1) or \
+                (c2 < m - 1 and image[r1][c2 + 1] == 1)
+    else:
+        # Vertical
+        return (r1 > 0 and image[r1-1][c1] == 1) or \
+                (r2 < n - 1 and image[r2 + 1][c1] == 1)
+
 def noLinePatches(image, r1, c1, r2, c2):
     if r1 == r2:
         line = image[r1][c1:c2+1]
@@ -125,6 +136,7 @@ def gen_commands(image):
         for j in range(m):
             for k in range(j, m):
                 if areLineEndsWhite(image, i, j, i, k) or \
+                    hashLeftOrRight(image, i, j, i, k) or \
                     moreWhitesThanBlacks(image, i, j, i, k):
                     continue
                 c = PaintLine(i, j, i, k)
@@ -137,6 +149,7 @@ def gen_commands(image):
         for i in range(n):
             for k in range(i + 1, n):
                 if areLineEndsWhite(image, i, j, k, j) or \
+                    hashLeftOrRight(image, i, j, k, j) or \
                     moreWhitesThanBlacks(image, i, j, k, j):
                     continue
                 c = PaintLine(i, j, k, j)
