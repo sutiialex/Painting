@@ -62,8 +62,13 @@ def print_image(image):
         l = ''.join([('#' if j == 1 else '.') for j in line])
         print l
 
-def print_commands(commands, out_filename):
-    pass
+def print_solution(solution, out_filename):
+    solver, commands = solution
+    with open(out_filename, 'w') as f:
+        print >>f, '%s' % int(solver.Objective().Value())
+        for command in commands:
+            if command.var.SolutionValue() == 1:
+                print >>f, command
 
 def areLineEndsWhite(image, r1, c1, r2, c2):
     return image[r1][c1] == 0 or image[r2][c2] == 0
@@ -164,7 +169,7 @@ def print_gen_commands(commands, cellCommands):
 
 def solve(image):
     commands, cellCommands = gen_commands(image)
-    print_gen_commands(commands, cellCommands)
+    #print_gen_commands(commands, cellCommands)
     solver = pywraplp.Solver('PaintingLP',
                              pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
 
@@ -202,22 +207,19 @@ def solve(image):
 
     print 'Generated objective'
 
+    solver.SetTimeLimit(20000)
     status = solver.Solve()
 
     print 'Solved'
 
-    print 'N commands: %s' % int(solver.Objective().Value())
-    for command in commands:
-        if command.var.SolutionValue() == 1:
-            print command
-
+    return solver, commands
 
 def main(in_filename, out_filename):
     """ main """
     image = read_image(in_filename)
     print_image(image)
-    solve(image)
-    #print_commands(commands, out_filename)
+    solution = solve(image)
+    print_solution(solution, out_filename)
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
