@@ -65,6 +65,27 @@ def print_image(image):
 def print_commands(commands, out_filename):
     pass
 
+def areLineEndsWhite(image, r1, c1, r2, c2):
+    return image[r1][c1] == 0 or image[r2][c2] == 0
+
+def moreWhitesThanBlacks(image, r1, c1, r2, c2):
+    if r1 == r2:
+        line = image[r1][c1:c2+1]
+    else:
+        line = [image[i][c1] for i in range(r1, r2 + 1)]
+
+    linePlusErases = len([1 for f in line if f == 0]) + 1
+    blackPatches = 0
+    currentPatch = 0
+    for p in line:
+        if p == 0:
+            currentPatch = 0
+        elif currentPatch == 0:
+            currentPatch = 1
+            blackPatches += 1
+
+    return blackPatches > linePlusErases
+
 def gen_commands(image):
     """
     returns:
@@ -82,6 +103,9 @@ def gen_commands(image):
     for i in range(n):
         for j in range(m):
             for k in range(j, m):
+                if areLineEndsWhite(image, i, j, i, k) or \
+                    moreWhitesThanBlacks(image, i, j, i, k):
+                    continue
                 c = PaintLine(i, j, i, k)
                 commands.append(c)
                 for z in range(j, k + 1):
@@ -91,6 +115,9 @@ def gen_commands(image):
     for j in range(m):
         for i in range(n):
             for k in range(i + 1, n):
+                if areLineEndsWhite(image, i, j, k, j) or \
+                    moreWhitesThanBlacks(image, i, j, k, j):
+                    continue
                 c = PaintLine(i, j, k, j)
                 commands.append(c)
                 for z in range(i, k + 1):
@@ -137,7 +164,7 @@ def print_gen_commands(commands, cellCommands):
 
 def solve(image):
     commands, cellCommands = gen_commands(image)
-    #print_gen_commands(commands, cellCommands)
+    print_gen_commands(commands, cellCommands)
     solver = pywraplp.Solver('PaintingLP',
                              pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
 
@@ -158,6 +185,15 @@ def solve(image):
                 assert isinstance(eraseCommand, EraseCell)
                 solver.Add(solver.Sum([c.var for c in drawCommands]) <=
                            len(drawCommands) * eraseCommand.var)
+
+    # the number of commands cannot be larger than the number of black cells
+    blackCells = 0
+    for i in range(n):
+        for j in range(m):
+            if image[i][j] == 1:
+                blackCells += 1
+
+    solver.Add(solver.Sum([c.var for c in commands]) <= blackCells)
 
     print 'Generated constraints'
 
@@ -180,8 +216,8 @@ def main(in_filename, out_filename):
     """ main """
     image = read_image(in_filename)
     print_image(image)
-    commands = solve(image)
-    print_commands(commands, out_filename)
+    solve(image)
+    #print_commands(commands, out_filename)
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
