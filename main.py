@@ -74,12 +74,17 @@ def areLineEndsWhite(image, r1, c1, r2, c2):
     return image[r1][c1] == 0 or image[r2][c2] == 0
 
 def moreWhitesThanBlacks(image, r1, c1, r2, c2):
+    whites, blackPatches = noLinePatches(image, r1, c1, r2, c2)
+
+    return whites + 1 > blackPatches
+
+def noLinePatches(image, r1, c1, r2, c2):
     if r1 == r2:
         line = image[r1][c1:c2+1]
     else:
         line = [image[i][c1] for i in range(r1, r2 + 1)]
 
-    linePlusErases = len([1 for f in line if f == 0]) + 1
+    whites = len([1 for f in line if f == 0])
     blackPatches = 0
     currentPatch = 0
     for p in line:
@@ -89,7 +94,18 @@ def moreWhitesThanBlacks(image, r1, c1, r2, c2):
             currentPatch = 1
             blackPatches += 1
 
-    return blackPatches > linePlusErases
+    return whites, blackPatches
+
+def squareNotWorthItPerLine(image, r, c, e):
+    whites = 0
+    blackPatches = 0
+
+    for i in range(r, r + e):
+        w, bP = noLinePatches(image, i, c, i, c + e - 1)
+        whites += w
+        blackPatches += bP
+
+    return whites + 1 > blackPatches
 
 def gen_commands(image):
     """
@@ -133,14 +149,15 @@ def gen_commands(image):
         for j in range(m):
             e = 3
             while e + i <= n and e + j <= m:
-                s = e / 2
-                r = i + s
-                c = j + s
-                command = PaintSquare(r, c, s)
-                commands.append(command)
-                for r1 in range(i, i + e):
-                    for c1 in range(j, j + e):
-                        cellCommands[r1][c1].append(command)
+                if not squareNotWorthItPerLine(image, i, j, e):
+                    s = e / 2
+                    r = i + s
+                    c = j + s
+                    command = PaintSquare(r, c, s)
+                    commands.append(command)
+                    for r1 in range(i, i + e):
+                        for c1 in range(j, j + e):
+                            cellCommands[r1][c1].append(command)
                 e += 2
 
     # Generate erases
@@ -207,10 +224,14 @@ def solve(image):
 
     print 'Generated objective'
 
-    solver.SetTimeLimit(20000)
+    solver.SetTimeLimit(60000)
     status = solver.Solve()
 
-    print 'Solved'
+
+    if status == solver.OPTIMAL:
+        print 'Solved optimally'
+    else:
+        print 'Solved partially'
 
     return solver, commands
 
