@@ -108,6 +108,8 @@ def noLinePatches(image, r1, c1, r2, c2):
     return whites, blackPatches
 
 def squareNotWorthItPerLine(image, r, c, e):
+    # TODO: No squares for now
+    return True
     whites = 0
     blackPatches = 0
 
@@ -134,28 +136,44 @@ def gen_commands(image):
     # Generate horizontal paint lines
     for i in range(n):
         for j in range(m):
+            if image[i][j] == 0 or \
+                (j > 0 and image[i][j-1] == 1):
+                continue
             for k in range(j, m):
-                if areLineEndsWhite(image, i, j, i, k) or \
-                    hashLeftOrRight(image, i, j, i, k) or \
-                    moreWhitesThanBlacks(image, i, j, i, k):
+                if image[i][k] == 0 or \
+                    (k < m - 1 and image[i][k+1] == 1):
                     continue
+
+                if moreWhitesThanBlacks(image, i, j, i, k):
+                    continue
+
                 c = PaintLine(i, j, i, k)
                 commands.append(c)
                 for z in range(j, k + 1):
                     cellCommands[i][z].append(c)
 
+    print 'Generated horizontal lines'
+
     # Generate vertical paint lines
     for j in range(m):
         for i in range(n):
+            if image[i][j] == 0 or \
+                (i > 0 and image[i-1][j] == 1):
+                continue
+
             for k in range(i + 1, n):
-                if areLineEndsWhite(image, i, j, k, j) or \
-                    hashLeftOrRight(image, i, j, k, j) or \
-                    moreWhitesThanBlacks(image, i, j, k, j):
+                if image[k][j] == 0 or \
+                    (k < n - 1 and image[k+1][j] == 1):
+                    continue
+
+                if moreWhitesThanBlacks(image, i, j, k, j):
                     continue
                 c = PaintLine(i, j, k, j)
                 commands.append(c)
                 for z in range(i, k + 1):
                     cellCommands[z][j].append(c)
+
+    print 'Generated vertical lines'
 
     # Generate squares
     for i in range(n):
@@ -173,6 +191,8 @@ def gen_commands(image):
                             cellCommands[r1][c1].append(command)
                 e += 2
 
+    print 'Generated squares'
+
     # Generate erases
     for i in range(n):
         for j in range(m):
@@ -180,6 +200,8 @@ def gen_commands(image):
                 c = EraseCell(i, j)
                 commands.append(c)
                 cellCommands[i][j].append(c)
+
+    print 'Generated erases'
 
     print 'Generated %d commands' % len(commands)
 
